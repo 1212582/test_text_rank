@@ -197,6 +197,8 @@ void TextRank::calWordScores() {
 
     for (int i = 0; i < MAX_ITER; i++) {
         unordered_map<string, float> new_scores_map;
+        for (const auto &it:word_neighbors)
+            new_scores_map[it.first] = 0;
         float max_diff = 0;
         //遍历每一个单词cur_word
         for (const auto &it:word_neighbors) {
@@ -208,19 +210,12 @@ void TextRank::calWordScores() {
                 int out_size = word_neighbors[neighbor_word].size();
                 if (cur_word == neighbor_word || out_size == 0)
                     continue;
-                float neighbor_score = 0;
-                if (this->word_scores.find(neighbor_word) != this->word_scores.end())
-                    neighbor_score = this->word_scores[neighbor_word];
+                float neighbor_score = this->word_scores[neighbor_word];
                 new_score += DAMP_FACTOR * neighbor_score / (float) out_size;
             }
-            if (new_scores_map.find(cur_word) == new_scores_map.end())
-                new_scores_map[cur_word] = new_score;
-            else
-                new_scores_map[cur_word] += new_score;
+            new_scores_map[cur_word] += new_score;
 
-            float cur_score = 0;
-            if (this->word_scores.find(cur_word) != this->word_scores.end())
-                cur_score = this->word_scores[cur_word];
+            float cur_score = this->word_scores[cur_word];
             max_diff = max(max_diff, abs(new_score - cur_score));
         }
 
