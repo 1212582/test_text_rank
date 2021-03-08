@@ -6,9 +6,9 @@
 #include <vector>
 #include <algorithm>
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <queue>
-#include <set>
+#include <unordered_set>
 
 using namespace std;
 
@@ -93,7 +93,7 @@ vector<T> topK(const vector<T> &vec, int K) {
         return vector<T>();
     }
     priority_queue<T, vector<T>, greater<>> minQ;
-    for (auto x:vec) {
+    for (const auto &x:vec) {
         if (minQ.size() < K) {
             minQ.push(x);
         }
@@ -121,15 +121,15 @@ private:
     /*keywords是训练得到的关键词*/
     vector<WordTerm> keywords;
     /*word_weights保存了每个单词的分数，分数越大越是关键词*/
-    map<string, float> word_scores;
+    unordered_map<string, float> word_scores;
     /*word_ids保存了每个单词的编号*/
-    map<string, int> word_ids;
+    unordered_map<string, int> word_ids;
     /*keyword_num保存了每次查询的关键词数目*/
     int keyword_num;
 
     void calWordScores();
 
-    map<string, set<string>> GetWordNeighbors();
+    unordered_map<string, unordered_set<string>> GetWordNeighbors();
 
     vector<WordTerm> GenerateTopKeywords();
 
@@ -149,7 +149,7 @@ public:
 
     explicit TextRank(string &corpus);
 
-    vector<WordTerm> GetKeywords(int keyword_num);
+    vector<WordTerm> GetKeywords(int p_keyword_num);
 
     void TransformKeywords(const vector<WordTerm> &term_vec);
 };
@@ -189,14 +189,14 @@ float Sigmod(float x) {
 }
 
 void TextRank::calWordScores() {
-    map<string, set<string>> word_neighbors = GetWordNeighbors();
+    unordered_map<string, unordered_set<string>> word_neighbors = GetWordNeighbors();
     /*依据TF来设置word_scores的初值*/
     this->word_scores.clear();
     for (const auto &it:word_neighbors)
         this->word_scores[it.first] = Sigmod(it.second.size());
 
     for (int i = 0; i < MAX_ITER; i++) {
-        map<string, float> new_scores_map;
+        unordered_map<string, float> new_scores_map;
         float max_diff = 0;
         //遍历每一个单词cur_word
         for (const auto &it:word_neighbors) {
@@ -230,8 +230,8 @@ void TextRank::calWordScores() {
     }
 }
 
-map<string, set<string>> TextRank::GetWordNeighbors() {
-    map<string, set<string>> word_neighbors;
+unordered_map<string, unordered_set<string>> TextRank::GetWordNeighbors() {
+    unordered_map<string, unordered_set<string>> word_neighbors;
     //遍历每一个句子
     for (auto word_vec:this->corpus) {
         int size = word_vec.size();
@@ -239,7 +239,7 @@ map<string, set<string>> TextRank::GetWordNeighbors() {
         for (int i = 0; i < size; i++) {
             auto cur_word = word_vec[i];
             if (word_neighbors.find(cur_word) == word_neighbors.end())
-                word_neighbors[cur_word] = set<string>();
+                word_neighbors[cur_word] = unordered_set<string>();
 
             for (int j = max(0, i - WINDOW_SIZE); j <= i + WINDOW_SIZE && j < size; j++) {
                 if (cur_word != word_vec[j]) {
@@ -261,27 +261,28 @@ vector<WordTerm> TextRank::GenerateTopKeywords() {
     return res;
 }
 
-vector<WordTerm> TextRank::GetKeywords(int keyword_num) {
+vector<WordTerm> TextRank::GetKeywords(int p_keyword_num) {
     if (this->keywords.empty()) {
         this->calWordScores();
         this->keywords = this->GenerateTopKeywords();
     }
     //此处使用min函数会报错
-//    keyword_num = min(keyword_num, MAX_KEYWORD_NUM);
-    if (keyword_num > MAX_KEYWORD_NUM)
-        keyword_num = MAX_KEYWORD_NUM;
-    if (keyword_num > this->keywords.size())
-        keyword_num = this->keywords.size();
-    this->keyword_num = keyword_num;
+//    p_keyword_num = min(p_keyword_num, MAX_KEYWORD_NUM);
+    if (p_keyword_num > MAX_KEYWORD_NUM)
+        p_keyword_num = MAX_KEYWORD_NUM;
+    if (p_keyword_num > this->keywords.size())
+        p_keyword_num = this->keywords.size();
+    this->keyword_num = p_keyword_num;
     vector<WordTerm> res;
-    res.reserve(keyword_num);
-    for (int i = 0; i < keyword_num; i++) {
+    res.reserve(p_keyword_num);
+    for (int i = 0; i < p_keyword_num; i++) {
         res.push_back(this->keywords[i]);
     }
     return res;
 }
 
 int result[TextRank::MAX_KEYWORD_NUM + 1];
+
 void TextRank::TransformKeywords(const vector<WordTerm> &term_vec) {
     result[0] = term_vec.size();
     for (int i = 0; i < term_vec.size(); i++) {
@@ -289,7 +290,7 @@ void TextRank::TransformKeywords(const vector<WordTerm> &term_vec) {
         result[i + 1] = this->word_ids[word];
     }
     for (int i = 0; i < term_vec.size(); i++) {
-        int importance = round(term_vec[i].get_importance() * 100);
+        int importance = int(term_vec[i].get_importance() * 100);
         result[this->keyword_num + i + 1] = importance;
     }
 }

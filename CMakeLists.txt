@@ -3,4 +3,4 @@ project(test_text_rank)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(test_text_rank main.cpp)
+add_executable(test_text_rank main.cpp text_rank.cpp)
